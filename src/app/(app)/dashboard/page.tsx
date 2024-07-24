@@ -140,7 +140,7 @@ function UserDashboard() {
 
   return (
     <div className="my-8 mx-4 md:mx-8 lg:mx-auto p-4 bg-white rounded w-full max-w-6xl">
-      <h1 className="text-4xl font-bold mb-4"> {username}'s Dashboard</h1>
+      <h1 className="text-4xl font-bold mb-4"> {username}&apos;s Dashboard</h1>
 
       <div className="mb-4">
         <h2 className="text-lg font-semibold mb-2">Copy Your Unique Link</h2>
@@ -193,7 +193,7 @@ function UserDashboard() {
         {messages.length > 0 ? (
           messages.map((message, index) => (
             <MessageCard
-              key={message._id}
+              key={message._id as React.Key}
               message={message}
               onMessageDelete={handleDeleteMessage}
             />
