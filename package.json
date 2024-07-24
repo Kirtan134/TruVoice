@@ -20,6 +20,7 @@
     "@radix-ui/react-toast": "^1.1.5",
     "@react-email/components": "^0.0.22",
     "@react-email/render": "^0.0.9-canary.2",
+    "@vercel/speed-insights": "^1.0.12",
     "ai": "^2.2.30",
     "axios": "^1.6.3",
     "bcryptjs": "^2.4.3",
