@@ -33,8 +33,8 @@ export async function GET(request: Request) {
     }
     if (user.length === 0) {
       return Response.json(
-        { message: 'No messages found', success: false },
-        { status: 404 }
+        { message: 'No messages found', success: true },
+        { status:  200}
       );
     }
 
