@@ -23,12 +23,12 @@ export async function sendVerificationEmail(email: string, username: string, ver
       throw new Error("Failed to retrieve access token");
     }
     const accessToken = accessTokenResponse.token;
-
+   const myEmail = process.env.EMAIL
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: {
         type: 'OAuth2',
-        user: 'kirtan134parikh@gmail.com',
+        user: myEmail,
         clientId: CLIENT_ID,
         clientSecret: CLIENT_SECRET,
         refreshToken: REFRESH_TOKEN,
@@ -37,7 +37,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
     });
 
     const mailOptions = {
-      from: 'TruVoice <kirtan134parikh@gmail.com>',
+      from: 'TruVoice <myEmail>',
       to: email,
       subject: 'TruVoice - Verification Code',
       html: render(VerificationEmail({ username, otp: verifyCode })),
