@@ -1,92 +1,100 @@
+# TruVoice Kubernetes Deployment
 
-# TruVoice
+This repository contains the necessary Kubernetes configuration files for deploying the TruVoice application using AWS ECR and Kubernetes.
 
-### The World of Anonymous Feedback
+## Live Demo
 
-TruVoice - Where your identity remains a secret. Now with the power of AI.
+- **URL**: [http://44.192.70.116/](http://44.192.70.116/)
 
-## Table of Contents
+## Deployment Files
 
-- [Introduction](#introduction)
-- [Features](#features)
-- [Tech Stack](#tech-stack)
-- [Installation](#installation)
-- [Usage](#usage)
-- [Contributing](#contributing)
-- [License](#license)
+- `k8s/deployment.yaml` - Application deployment configuration
+- `k8s/service.yaml` - Service configuration for external access
+- `k8s/ingress.yaml` - Ingress configuration
+- `k8s/secrets.yaml` - Template for application secrets
+- `k8s/ecr-secret.yaml` - Configuration for ECR authentication
 
-## Introduction
+## Quick Deployment Steps
 
-TruVoice is an innovative platform designed to allow users to give and receive anonymous feedback. With the integration of AI, users can generate thoughtful and constructive feedback easily. Whether authenticated or not, users can provide feedback securely and anonymously.
+### 1. Create ECR Secret
 
-## Features
+Run the following command to create a secret for ECR authentication:
 
-- **Anonymous Feedback:** Receive feedback from others while keeping your identity secret.
-- **Email Authentication:** Authenticate via email using OTP for secure feedback receipt.
-- **AI-Generated Feedback:** Use Gemini AI to generate feedback messages.
-- **Cross-Platform:** Fully responsive design for both desktop and mobile devices.
+```bash
+kubectl create secret docker-registry ecr-secret \
+  --docker-server=730335582131.dkr.ecr.us-east-1.amazonaws.com \
+  --docker-username=AWS \
+  --docker-password=$(aws ecr get-login-password --region us-east-1) \
+  --dry-run=client -o yaml > k8s/ecr-secret.yaml
 
-## Tech Stack
+kubectl apply -f k8s/ecr-secret.yaml
+```
 
-TruVoice is built using the following technologies:
+### 2. Apply Kubernetes Resources
 
-- **Frontend:** Next.js, ShadCN
-- **Backend:** Next.js API routes
-- **Database:** MongoDB
-- **Authentication:** Next-Auth, Auth.js, JWT tokens
-- **Validation:** Zod
-- **Email Services:** Nodemailer, Gmail API
-- **AI Integration:** Gemini AI
+```bash
+# Apply secrets first
+kubectl apply -f k8s/secrets.yaml
 
-## Installation
+# Apply other resources
+kubectl apply -f k8s/deployment.yaml
+kubectl apply -f k8s/service.yaml
+kubectl apply -f k8s/ingress.yaml
+```
 
-To get a local copy up and running, follow these simple steps:
+### 3. Set Up Port Forwarding (if needed)
 
-1. Clone the repo
-   ```sh
-   git clone https://github.com/Kirtan134/TruVoice.git
-   ```
-2. Install NPM packages
-   ```sh
-   npm install
-   ```
-3. Set up environment variables
-   - Create a `.env` file in the root directory
-   - Add your MONGODB_URI, NEXTAUTH_SECRET, GEMINI_API_KEY, CLIENT_ID,  CLIENT_SECRET, REDIRECT_URI, REFRESH_TOKEN and other necessary credentials
+```bash
+NODE_PORT=$(kubectl get svc truvoice-service -o jsonpath='{.spec.ports[0].nodePort}')
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-port $NODE_PORT
+```
 
-4. Run the development server
-   ```sh
-   npm run dev
-   ```
+## Updating the Application
 
-## Usage
+To update the application to a new version:
 
-1. **Authentication:**
-   - Sign up with your email.
-   - Verify your email using the OTP sent to your inbox.
+```bash
+# Push new image to ECR (from your local machine)
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 730335582131.dkr.ecr.us-east-1.amazonaws.com
+docker build -t 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
+docker push 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
 
-2. **Giving Feedback:**
-   - Choose to authenticate or give feedback anonymously.
-   - Use Gemini AI to generate feedback messages if needed.
-   - Submit your feedback.
+# Restart the deployment (on the k3s server)
+kubectl rollout restart deployment/truvoice-app
+```
 
-3. **Receiving Feedback:**
-   - Receive feedback anonymously.
-   - Manage your feedback through the user dashboard.
+## Monitoring
 
-## Contributing
+```bash
+# Check pod status
+kubectl get pods
 
-Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+# View logs
+kubectl logs -f $(kubectl get pods -l app=truvoice -o jsonpath='{.items[0].metadata.name}')
 
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+# Check service
+kubectl get svc truvoice-service
+```
 
-## License
+## Environment Variables
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Update `k8s/secrets.yaml` with your actual credentials:
 
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: truvoice-secrets
+type: Opaque
+stringData:
+  mongodb-uri: "your-mongodb-uri"
+  nextauth-secret: "your-nextauth-secret"
+  gemini-api-key: "your-gemini-api-key"
+  client-id: "your-client-id"
+  client-secret: "your-client-secret"
+  redirect-uri: "your-redirect-uri"
+  refresh-token: "your-refresh-token"
+  email: "your-email"
+```
 ---
 
