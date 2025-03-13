@@ -12,22 +12,19 @@ This repository contains the necessary Kubernetes configuration files for deploy
 - `k8s/service.yaml` - Service configuration for external access
 - `k8s/ingress.yaml` - Ingress configuration
 - `k8s/secrets.yaml` - Template for application secrets
-- `k8s/ecr-secret.yaml` - Configuration for ECR authentication
 
 ## Quick Deployment Steps
 
-### 1. Create ECR Secret
+### 1. Create ECR Secret (directly on cluster)
 
-Run the following command to create a secret for ECR authentication:
+Run this command directly on your Kubernetes cluster (not in your repository):
 
 ```bash
+# Run on your k3s server
 kubectl create secret docker-registry ecr-secret \
-  --docker-server=<aws-account-id>.dkr.ecr.us-east-1.amazonaws.com \
+  --docker-server=730335582131.dkr.ecr.us-east-1.amazonaws.com \
   --docker-username=AWS \
-  --docker-password=$(aws ecr get-login-password --region us-east-1) \
-  --dry-run=client -o yaml > k8s/ecr-secret.yaml
-
-kubectl apply -f k8s/ecr-secret.yaml
+  --docker-password=$(aws ecr get-login-password --region us-east-1)
 ```
 
 ### 2. Apply Kubernetes Resources
@@ -55,9 +52,9 @@ To update the application to a new version:
 
 ```bash
 # Push new image to ECR (from your local machine)
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com
-docker build -t <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
-docker push <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
+aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 730335582131.dkr.ecr.us-east-1.amazonaws.com
+docker build -t 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
+docker push 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
 
 # Restart the deployment (on the k3s server)
 kubectl rollout restart deployment/truvoice-app
