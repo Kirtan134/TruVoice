@@ -8,7 +8,7 @@ metadata:
     alb.ingress.kubernetes.io/target-type: ip
 spec:
   rules:
-  - host: truvoice.example.com  # Replace with your actual domain
+  - host: http://44.192.70.116/  
     http:
       paths:
       - path: /
