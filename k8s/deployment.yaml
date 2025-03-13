@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: truvoice-app
+  labels:
+    app: truvoice
+spec:
+  replicas: 1  # Starting with 1 replica to stay within free tier limits
+  selector:
+    matchLabels:
+      app: truvoice
+  template:
+    metadata:
+      labels:
+        app: truvoice
+    spec:
+      containers:
+      - name: truvoice
+        image: ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/truvoice:latest
+        ports:
+        - containerPort: 3000
+        resources:
+          limits:
+            cpu: "0.5"  # Limited resources for free tier
+            memory: "512Mi"
+          requests:
+            cpu: "0.25"
+            memory: "256Mi"
+        env:
+        - name: MONGODB_URI
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: mongodb-uri
+        - name: NEXTAUTH_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: nextauth-secret
+        - name: GEMINI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: gemini-api-key
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: client-id
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: client-secret
+        - name: REDIRECT_URI
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: redirect-uri
+        - name: REFRESH_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: refresh-token
+        - name: EMAIL
+          valueFrom:
+            secretKeyRef:
+              name: truvoice-secrets
+              key: email
+        - name: NEXTAUTH_URL
+          value: https://truvoice.example.com  # Replace with your actual domain
+        livenessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /api/health
+            port: 3000
+          initialDelaySeconds: 5
+          periodSeconds: 5 

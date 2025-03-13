@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: truvoice-service
+spec:
+  selector:
+    app: truvoice
+  ports:
+  - port: 80
+    targetPort: 3000
+  type: ClusterIP  # Using ClusterIP since we'll use an ingress for public access 
