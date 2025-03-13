@@ -1,10 +1,4 @@
----
-title: "TruVoice Kubernetes Deployment Report"
-created: {{date}}
-tags: [deployment, kubernetes, aws, project-documentation]
----
-
-# 🚀 TruVoice Kubernetes Deployment Report
+# TruVoice Kubernetes Deployment Report
 
 ## 📋 Project Overview
 
@@ -355,12 +349,3 @@ kubectl exec -it $(kubectl get pods -l app=truvoice -o jsonpath='{.items[0].meta
 - [AWS ECR Documentation](https://docs.aws.amazon.com/ecr/)
 - [Next.js Deployment Documentation](https://nextjs.org/docs/deployment)
 - [MongoDB Atlas Documentation](https://docs.atlas.mongodb.com/)
-
-## 👥 Contributors
-
-- Kirtan Parikh (@Kirtan134)
-
----
-
-> [!INFO]
-> This deployment report was last updated on {{date}}. Ensure to update this documentation as the deployment configuration changes. 
