@@ -53,8 +53,8 @@ To update the application to a new version:
 ```bash
 # Push new image to ECR (from your local machine)
 aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 730335582131.dkr.ecr.us-east-1.amazonaws.com
-docker build -t 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
-docker push 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
+docker build -t <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
+docker push <aws-account-id>.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
 
 # Restart the deployment (on the k3s server)
 kubectl rollout restart deployment/truvoice-app
