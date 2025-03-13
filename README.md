@@ -1,13 +1,11 @@
 # TruVoice Kubernetes Deployment
 
-![TruVoice Banner](https://raw.githubusercontent.com/Kirtan134/TruVoice/main/public/truvoice-banner.png)
-
 This repository contains the Kubernetes configuration files for deploying the TruVoice application - an anonymous feedback platform with AI integration, using AWS ECR and Kubernetes (k3s) on AWS Free Tier resources.
 
 ## Live Demo
 
 - **Live Demo URL**: [http://44.192.70.116/](http://44.192.70.116/)
-- **GitHub Repository**: [https://github.com/Kirtan134/TruVoice](https://github.com/Kirtan134/TruVoice)
+- **GitHub Repository**: [https://github.com/Kirtan134/TruVoice/tree/deployment](https://github.com/Kirtan134/TruVoice/tree/deployment)
 
 ## Architecture Overview
 
@@ -60,13 +58,13 @@ aws ecr create-repository --repository-name truvoice
 ```bash
 # Build and tag the image
 docker build -t truvoice:latest .
-docker tag truvoice:latest 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
+docker tag truvoice:latest YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/truvoice:latest
 
 # Login to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 730335582131.dkr.ecr.us-east-1.amazonaws.com
+aws ecr get-login-password --region YOUR_REGION | docker login --username AWS --password-stdin YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com
 
 # Push the image
-docker push 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
+docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/truvoice:latest
 ```
 
 ### 3. Create Kubernetes Secrets
@@ -78,9 +76,9 @@ Run this command directly on your Kubernetes cluster:
 ```bash
 # Create secret for ECR authentication
 kubectl create secret docker-registry ecr-secret \
-  --docker-server=730335582131.dkr.ecr.us-east-1.amazonaws.com \
+  --docker-server=YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com \
   --docker-username=AWS \
-  --docker-password=$(aws ecr get-login-password --region us-east-1)
+  --docker-password=$(aws ecr get-login-password --region YOUR_REGION)
 ```
 
 #### b. Create Application Secrets
@@ -143,8 +141,8 @@ When you make changes to your application:
 
 ```bash
 # Build and push new image
-docker build -t 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest .
-docker push 730335582131.dkr.ecr.us-east-1.amazonaws.com/truvoice:latest
+docker build -t YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/truvoice:latest .
+docker push YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com/truvoice:latest
 
 # Restart the deployment to pick up the new image
 kubectl rollout restart deployment/truvoice-app
@@ -205,9 +203,9 @@ kubectl get secret ecr-secret -o yaml
 # Re-create ECR secret if needed
 kubectl delete secret ecr-secret
 kubectl create secret docker-registry ecr-secret \
-  --docker-server=730335582131.dkr.ecr.us-east-1.amazonaws.com \
+  --docker-server=YOUR_AWS_ACCOUNT_ID.dkr.ecr.YOUR_REGION.amazonaws.com \
   --docker-username=AWS \
-  --docker-password=$(aws ecr get-login-password --region us-east-1)
+  --docker-password=$(aws ecr get-login-password --region YOUR_REGION)
 ```
 
 #### 2. Application Not Starting
