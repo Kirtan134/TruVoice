@@ -4,7 +4,7 @@ This repository contains the Kubernetes configuration files for deploying the Tr
 
 ## Live Demo
 
-- **Live Demo URL**: [http://44.192.70.116/](http://44.192.70.116/)
+- **Live Demo URL**: [Truvoice](http://3.110.219.229:32233/)
 - **GitHub Repository**: [https://github.com/Kirtan134/TruVoice/tree/deployment](https://github.com/Kirtan134/TruVoice/tree/deployment)
 
 ## Architecture Overview
