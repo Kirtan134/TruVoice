@@ -1,0 +1,183 @@
+name: 'Build and Deploy'
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'dev'
+        type: choice
+        options:
+          - dev
+          - staging
+          - production
+      deploy_infra:
+        description: 'Deploy infrastructure (Terraform)'
+        required: true
+        default: true
+        type: boolean
+      deploy_app:
+        description: 'Deploy application (Kubernetes)'
+        required: true
+        default: true
+        type: boolean
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+  AWS_REGION: 'ap-south-1'
+  TF_WORKING_DIR: './terraform'
+
+jobs:
+  build:
+    name: 'Build Docker Image'
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.deploy_app == 'true' }}
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+    
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v2
+    
+    - name: Log in to GitHub Container Registry
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ env.REGISTRY }}
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Extract metadata for Docker
+      id: meta
+      uses: docker/metadata-action@v4
+      with:
+        images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+        tags: |
+          type=sha,format=short
+          type=raw,value=${{ github.event.inputs.environment }}
+          type=raw,value=latest,enable=${{ github.event.inputs.environment == 'production' }}
+    
+    - name: Build and push Docker image
+      uses: docker/build-push-action@v4
+      with:
+        context: .
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: type=gha
+        cache-to: type=gha,mode=max
+
+  terraform:
+    name: 'Deploy Infrastructure'
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.deploy_infra == 'true' }}
+    needs: [build]
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup SSH Keys
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/id_rsa.pub
+        chmod 644 ~/.ssh/id_rsa.pub
+
+    - name: Set Terraform Workspace
+      run: |
+        terraform init
+        terraform workspace select ${{ github.event.inputs.environment }} || terraform workspace new ${{ github.event.inputs.environment }}
+    
+    - name: Terraform Plan
+      id: plan
+      run: terraform plan -var="environment=${{ github.event.inputs.environment }}"
+      continue-on-error: true
+
+    - name: Terraform Apply
+      id: apply
+      run: terraform apply -auto-approve -var="environment=${{ github.event.inputs.environment }}"
+
+    - name: Terraform Output
+      id: output
+      run: |
+        echo "K3S_MASTER_IP=$(terraform output -raw k3s_master_public_ip)" >> $GITHUB_OUTPUT
+
+    - name: Get Kubeconfig
+      run: |
+        # Wait for K3s to initialize
+        sleep 60
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ steps.output.outputs.K3S_MASTER_IP }} sudo cat /etc/rancher/k3s/k3s.yaml > kubeconfig.yaml
+        sed -i 's/127.0.0.1/${{ steps.output.outputs.K3S_MASTER_IP }}/g' kubeconfig.yaml
+        chmod 600 kubeconfig.yaml
+        
+    - name: Upload Kubeconfig as Artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: kubeconfig
+        path: ${{ env.TF_WORKING_DIR }}/kubeconfig.yaml
+        retention-days: 1
+
+  deploy:
+    name: 'Deploy Application'
+    runs-on: ubuntu-latest
+    if: ${{ github.event.inputs.deploy_app == 'true' }}
+    needs: [build, terraform]
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup kubectl
+      uses: azure/setup-kubectl@v3
+      
+    - name: Download Kubeconfig
+      uses: actions/download-artifact@v3
+      with:
+        name: kubeconfig
+        path: ./kubeconfig
+        
+    - name: Set KUBECONFIG env var
+      run: echo "KUBECONFIG=$(pwd)/kubeconfig/kubeconfig.yaml" >> $GITHUB_ENV
+        
+    - name: Update Kubernetes Deployment
+      run: |
+        # Replace image in deployment.yaml
+        sed -i "s|image: .*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.environment }}|g" k8s/deployment.yaml
+        
+        # Apply Kubernetes manifests
+        kubectl create namespace truvoice --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f k8s/secrets.yaml -n truvoice
+        kubectl apply -f k8s/deployment.yaml -n truvoice
+        kubectl apply -f k8s/service.yaml -n truvoice
+        kubectl apply -f k8s/ingress.yaml -n truvoice
+        
+        # Wait for rollout
+        kubectl rollout status deployment/truvoice -n truvoice --timeout=300s
+        
+    - name: Check Application Status
+      run: |
+        echo "Application deployed to ${{ github.event.inputs.environment }} environment"
+        echo "Access the application at http://$(kubectl get ingress -n truvoice -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')"
+        kubectl get pods -n truvoice 

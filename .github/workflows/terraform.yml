@@ -1,0 +1,150 @@
+name: 'Terraform CI/CD'
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform.yml'
+  workflow_dispatch:
+    inputs:
+      action:
+        description: 'Action to perform (plan, apply, destroy)'
+        required: true
+        default: 'plan'
+        type: choice
+        options:
+          - plan
+          - apply
+          - destroy
+
+env:
+  TF_LOG: INFO
+  AWS_REGION: 'us-east-1' # Change to your preferred region
+  TF_WORKING_DIR: './terraform'
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform:
+    name: 'Terraform'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ env.TF_WORKING_DIR }}
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: 1.5.0
+
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Setup SSH Keys
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        echo "${{ secrets.SSH_PUBLIC_KEY }}" > ~/.ssh/id_rsa.pub
+        chmod 644 ~/.ssh/id_rsa.pub
+
+    - name: Terraform Format
+      id: fmt
+      run: terraform fmt -check
+      continue-on-error: true
+
+    - name: Terraform Init
+      id: init
+      run: terraform init
+
+    - name: Terraform Validate
+      id: validate
+      run: terraform validate -no-color
+
+    - name: Terraform Plan
+      id: plan
+      if: github.event_name == 'pull_request' || github.event.inputs.action == 'plan' || github.event.inputs.action == 'apply' || github.event.inputs.action == '' || github.event.inputs.action == null
+      run: terraform plan -no-color
+      continue-on-error: true
+
+    - name: Update Pull Request
+      uses: actions/github-script@v6
+      if: github.event_name == 'pull_request'
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          
+          <details><summary>Show Plan</summary>
+          
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
+          
+          </details>
+          
+          *Pushed by: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+          
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+
+    - name: Terraform Apply
+      id: apply
+      if: github.ref == 'refs/heads/main' && (github.event.inputs.action == 'apply' || github.event.inputs.action == '')
+      run: terraform apply -auto-approve
+
+    - name: Terraform Destroy
+      id: destroy
+      if: github.event.inputs.action == 'destroy'
+      run: terraform destroy -auto-approve
+
+    - name: Terraform Output
+      id: output
+      if: (github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply') || github.event.inputs.action == ''
+      run: |
+        echo "K3S_MASTER_IP=$(terraform output -raw k3s_master_public_ip)" >> $GITHUB_OUTPUT
+        echo "KUBECTL_CONFIG_CMD=$(terraform output -raw kubectl_config_command)" >> $GITHUB_OUTPUT
+
+    - name: Setup kubectl
+      if: (github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply') || github.event.inputs.action == ''
+      uses: azure/setup-kubectl@v3
+
+    - name: Get Kubeconfig
+      if: (github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply') || github.event.inputs.action == ''
+      run: |
+        # Wait for K3s to initialize
+        sleep 60
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ubuntu@${{ steps.output.outputs.K3S_MASTER_IP }} sudo cat /etc/rancher/k3s/k3s.yaml > kubeconfig.yaml
+        sed -i 's/127.0.0.1/${{ steps.output.outputs.K3S_MASTER_IP }}/g' kubeconfig.yaml
+        echo "KUBECONFIG=$(pwd)/kubeconfig.yaml" >> $GITHUB_ENV
+
+    - name: Check Cluster Status
+      if: (github.ref == 'refs/heads/main' && github.event.inputs.action == 'apply') || github.event.inputs.action == ''
+      run: |
+        kubectl get nodes
+        kubectl get pods --all-namespaces 

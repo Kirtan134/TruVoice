@@ -8,7 +8,8 @@ resource "aws_vpc" "k3s_vpc" {
   enable_dns_support   = true
 
   tags = {
-    Name = "k3s-vpc"
+    Name        = "k3s-vpc-${var.environment}"
+    Environment = var.environment
   }
 }
 
@@ -19,7 +20,8 @@ resource "aws_subnet" "k3s_subnet" {
   availability_zone       = "${var.aws_region}a"
 
   tags = {
-    Name = "k3s-subnet"
+    Name        = "k3s-subnet-${var.environment}"
+    Environment = var.environment
   }
 }
 
@@ -27,7 +29,8 @@ resource "aws_internet_gateway" "k3s_igw" {
   vpc_id = aws_vpc.k3s_vpc.id
 
   tags = {
-    Name = "k3s-igw"
+    Name        = "k3s-igw-${var.environment}"
+    Environment = var.environment
   }
 }
 
@@ -40,7 +43,8 @@ resource "aws_route_table" "k3s_route_table" {
   }
 
   tags = {
-    Name = "k3s-route-table"
+    Name        = "k3s-route-table-${var.environment}"
+    Environment = var.environment
   }
 }
 
@@ -50,7 +54,7 @@ resource "aws_route_table_association" "k3s_rta" {
 }
 
 resource "aws_security_group" "k3s_sg" {
-  name        = "k3s-security-group"
+  name        = "k3s-security-group-${var.environment}"
   description = "Allow traffic for K3s cluster"
   vpc_id      = aws_vpc.k3s_vpc.id
 
@@ -104,12 +108,13 @@ resource "aws_security_group" "k3s_sg" {
   }
 
   tags = {
-    Name = "k3s-sg"
+    Name        = "k3s-sg-${var.environment}"
+    Environment = var.environment
   }
 }
 
 resource "aws_key_pair" "k3s_key_pair" {
-  key_name   = "k3s-key"
+  key_name   = "k3s-key-${var.environment}"
   public_key = file(var.public_key_path)
 }
 
@@ -122,12 +127,14 @@ resource "aws_instance" "k3s_master" {
   subnet_id              = aws_subnet.k3s_subnet.id
 
   root_block_device {
-    volume_size = 10
+    volume_size = 30
     volume_type = "gp3"
   }
 
   tags = {
-    Name = "k3s-master"
+    Name        = "k3s-master-${var.environment}"
+    Environment = var.environment
+    Role        = "master"
   }
 
   user_data = <<-EOF
@@ -148,12 +155,14 @@ resource "aws_instance" "k3s_worker" {
   subnet_id              = aws_subnet.k3s_subnet.id
 
   root_block_device {
-    volume_size = 10
+    volume_size = 30
     volume_type = "gp3"
   }
 
   tags = {
-    Name = "k3s-worker-${count.index}"
+    Name        = "k3s-worker-${count.index}-${var.environment}"
+    Environment = var.environment
+    Role        = "worker"
   }
 
   user_data = <<-EOF
