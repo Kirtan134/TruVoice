@@ -122,7 +122,7 @@ resource "aws_instance" "k3s_master" {
   subnet_id              = aws_subnet.k3s_subnet.id
 
   root_block_device {
-    volume_size = 30
+    volume_size = 10
     volume_type = "gp3"
   }
 
@@ -148,7 +148,7 @@ resource "aws_instance" "k3s_worker" {
   subnet_id              = aws_subnet.k3s_subnet.id
 
   root_block_device {
-    volume_size = 30
+    volume_size = 10
     volume_type = "gp3"
   }
 
