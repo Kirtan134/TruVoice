@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
-import Link from "next/link";
-import { useSession, signOut } from "next-auth/react";
-import { Button } from "./ui/button";
 import { User } from "next-auth";
+import { signOut, useSession } from "next-auth/react";
 import Image from "next/image";
+import Link from "next/link";
+import { useState } from "react";
 import logo from "../../public/github.png";
+import { Button } from "./ui/button";
 
 function Navbar() {
   const { data: session } = useSession();
