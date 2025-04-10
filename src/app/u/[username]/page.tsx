@@ -37,16 +37,6 @@ export default function SendMessage() {
   const params = useParams();
   const username = params?.username;
   
-  if (!username || typeof username !== 'string') {
-    return (
-      <div className="container mx-auto my-2 p-6 bg-white rounded max-w-4xl">
-        <h1 className="text-3xl font-bold mb-4 text-center text-red-500">
-          Error: Username not found
-        </h1>
-      </div>
-    );
-  }
-
   const {
     complete,
     completion,
@@ -62,14 +52,22 @@ export default function SendMessage() {
   });
 
   const messageContent = form.watch("content");
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleMessageClick = (message: string) => {
     form.setValue("content", message);
   };
 
-  const [isLoading, setIsLoading] = useState(false);
-
   const onSubmit = async (data: z.infer<typeof messageSchema>) => {
+    if (!username || typeof username !== 'string') {
+      toast({
+        title: "Error",
+        description: "Username is missing",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const response = await axios.post<ApiResponse>("/api/send-message", {
@@ -103,6 +101,16 @@ export default function SendMessage() {
       // Handle error appropriately
     }
   };
+
+  if (!username || typeof username !== 'string') {
+    return (
+      <div className="container mx-auto my-2 p-6 bg-white rounded max-w-4xl">
+        <h1 className="text-3xl font-bold mb-4 text-center text-red-500">
+          Error: Username not found
+        </h1>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto my-2 p-6 bg-white rounded max-w-4xl">
