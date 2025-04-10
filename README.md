@@ -3,11 +3,11 @@
 To access deployment-related configurations and manifests, switch to the `deployments` branch:
 
 ```bash
-git checkout deployments
+git checkout deployment
 ```
-```md
-👉 [Go to the deployments branch](https://github.com/Kirtan134/TruVoice/tree/deployment)
-```
+
+👉 [Go to the deployment branch](https://github.com/Kirtan134/TruVoice/tree/deployment)
+
 
 # TruVoice
 
