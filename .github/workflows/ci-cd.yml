@@ -78,6 +78,12 @@ jobs:
           cd terraform
           terraform apply -auto-approve tfplan
           
+      - name: Get K3s Master IP
+        id: k3s-ip
+        run: |
+          cd terraform
+          echo "K3S_MASTER_IP=$(terraform output -raw k3s_master_public_ip)" >> $GITHUB_OUTPUT
+          
       - name: Update Kubernetes manifests
         run: |
           # Update the image tag in the deployment.yaml
