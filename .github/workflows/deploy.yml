@@ -167,17 +167,17 @@ jobs:
         sed -i "s|image: .*|image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.event.inputs.environment }}|g" k8s/deployment.yaml
         
         # Apply Kubernetes manifests
-        kubectl create namespace truvoice --dry-run=client -o yaml | kubectl apply -f -
-        kubectl apply -f k8s/secrets.yaml -n truvoice
-        kubectl apply -f k8s/deployment.yaml -n truvoice
-        kubectl apply -f k8s/service.yaml -n truvoice
-        kubectl apply -f k8s/ingress.yaml -n truvoice
+        kubectl create namespace truvoice-${{ github.event.inputs.environment }} --dry-run=client -o yaml | kubectl apply -f -
+        kubectl apply -f k8s/secrets.yaml -n truvoice-${{ github.event.inputs.environment }}
+        kubectl apply -f k8s/deployment.yaml -n truvoice-${{ github.event.inputs.environment }}
+        kubectl apply -f k8s/service.yaml -n truvoice-${{ github.event.inputs.environment }}
+        kubectl apply -f k8s/ingress.yaml -n truvoice-${{ github.event.inputs.environment }}
         
         # Wait for rollout
-        kubectl rollout status deployment/truvoice -n truvoice --timeout=300s
+        kubectl rollout status deployment/truvoice -n truvoice-${{ github.event.inputs.environment }} --timeout=300s
         
     - name: Check Application Status
       run: |
         echo "Application deployed to ${{ github.event.inputs.environment }} environment"
-        echo "Access the application at http://$(kubectl get ingress -n truvoice -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')"
-        kubectl get pods -n truvoice 
+        echo "Access the application at http://$(kubectl get ingress -n truvoice-${{ github.event.inputs.environment }} -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}')"
+        kubectl get pods -n truvoice-${{ github.event.inputs.environment }} 

@@ -19,19 +19,19 @@ variable "ubuntu_ami" {
 variable "master_instance_type" {
   description = "Instance type for the K3s master node"
   type        = string
-  default     = "t3.medium" # Minimum 2 CPU, 4GB RAM recommended for K3s master
+  default     = "t2.micro" # Using t2.micro for cost optimization
 }
 
 variable "worker_instance_type" {
   description = "Instance type for the K3s worker nodes"
   type        = string
-  default     = "t3.small" # Minimum 2 CPU, 2GB RAM for K3s workers
+  default     = "t2.micro" # Using t2.micro for cost optimization
 }
 
 variable "worker_count" {
   description = "Number of K3s worker nodes"
   type        = number
-  default     = 2
+  default     = 1 # Reduced to 1 worker for t2.micro
 }
 
 variable "public_key_path" {
@@ -44,4 +44,19 @@ variable "private_key_path" {
   description = "Path to the private SSH key"
   type        = string
   default     = "~/.ssh/id_rsa"
+}
+
+variable "ecr_repository_name" {
+  description = "Name of the ECR repository for Docker images"
+  type        = string
+  default     = "truvoice"
+}
+
+variable "tags" {
+  description = "Default tags for all resources"
+  type        = map(string)
+  default = {
+    Project     = "TruVoice"
+    ManagedBy   = "Terraform"
+  }
 } 

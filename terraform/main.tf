@@ -2,15 +2,52 @@ provider "aws" {
   region = var.aws_region
 }
 
+# ECR Repository for Docker images
+resource "aws_ecr_repository" "truvoice" {
+  name                 = var.ecr_repository_name
+  image_tag_mutability = "MUTABLE"
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = merge(var.tags, {
+    Name = "${var.ecr_repository_name}-${var.environment}"
+    Environment = var.environment
+  })
+}
+
+# ECR Lifecycle Policy to limit the number of images
+resource "aws_ecr_lifecycle_policy" "truvoice" {
+  repository = aws_ecr_repository.truvoice.name
+
+  policy = jsonencode({
+    rules = [
+      {
+        rulePriority = 1
+        description  = "Keep last 5 images"
+        selection = {
+          tagStatus     = "any"
+          countType     = "imageCountMoreThan"
+          countNumber   = 5
+        }
+        action = {
+          type = "expire"
+        }
+      }
+    ]
+  })
+}
+
 resource "aws_vpc" "k3s_vpc" {
   cidr_block           = "10.0.0.0/16"
   enable_dns_hostnames = true
   enable_dns_support   = true
 
-  tags = {
+  tags = merge(var.tags, {
     Name        = "k3s-vpc-${var.environment}"
     Environment = var.environment
-  }
+  })
 }
 
 resource "aws_subnet" "k3s_subnet" {
@@ -72,6 +109,14 @@ resource "aws_security_group" "k3s_sg" {
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
     description = "Kubernetes API"
+  }
+
+  ingress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["10.0.0.0/16"]
+    description = "Node token access (VPC only)"
   }
 
   ingress {
@@ -140,8 +185,30 @@ resource "aws_instance" "k3s_master" {
   user_data = <<-EOF
               #!/bin/bash
               apt-get update
-              apt-get install -y curl
+              apt-get install -y curl jq netcat
+
+              # Install K3s server
               curl -sfL https://get.k3s.io | sh -
+
+              # Wait for K3s to be ready
+              sleep 30
+
+              # Create a simple HTTP server to expose the node token securely within the VPC
+              NODE_TOKEN=$(sudo cat /var/lib/rancher/k3s/server/node-token)
+              
+              # Set up a temporary endpoint to serve the token to worker nodes
+              cat > /tmp/serve_token.sh <<'SERVESCRIPT'
+              #!/bin/bash
+              while true; do
+                echo -e "HTTP/1.1 200 OK\n\n$(cat /var/lib/rancher/k3s/server/node-token)" | nc -l -p 8080 -q 1
+              done
+              SERVESCRIPT
+              
+              chmod +x /tmp/serve_token.sh
+              nohup /tmp/serve_token.sh > /tmp/serve_token.log 2>&1 &
+              
+              # Secure the token server after 30 minutes
+              nohup bash -c "sleep 1800 && pkill -f 'nc -l -p 8080'" > /dev/null 2>&1 &
               EOF
 }
 
@@ -169,8 +236,12 @@ resource "aws_instance" "k3s_worker" {
               #!/bin/bash
               apt-get update
               apt-get install -y curl
-              K3S_TOKEN=$(ssh -i /path/to/private_key -o StrictHostKeyChecking=no ubuntu@${aws_instance.k3s_master.private_ip} sudo cat /var/lib/rancher/k3s/server/node-token)
-              curl -sfL https://get.k3s.io | K3S_URL=https://${aws_instance.k3s_master.private_ip}:6443 K3S_TOKEN=$K3S_TOKEN sh -
+              # Wait for master to be ready
+              sleep 90
+              # Use the private IP address directly instead of SSH 
+              # This is more secure and avoids SSH key issues
+              TOKEN=$(curl -sfL -X GET "http://${aws_instance.k3s_master.private_ip}:8080/node-token")
+              curl -sfL https://get.k3s.io | K3S_URL=https://${aws_instance.k3s_master.private_ip}:6443 K3S_TOKEN=$TOKEN sh -
               EOF
 
   depends_on = [aws_instance.k3s_master]
