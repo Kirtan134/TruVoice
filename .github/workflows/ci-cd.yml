@@ -107,7 +107,29 @@ jobs:
         id: k3s-ip
         run: |
           cd terraform
-          echo "K3S_MASTER_IP=$(terraform output -raw k3s_master_public_ip)" >> $GITHUB_OUTPUT
+          
+          # Use a different approach to get the output
+          # First, get all outputs in JSON format
+          OUTPUTS=$(terraform output -json)
+          
+          # Check if the output exists and extract the value
+          if echo "$OUTPUTS" | jq -e '.k3s_master_public_ip' > /dev/null; then
+            # Extract the value using jq
+            MASTER_IP=$(echo "$OUTPUTS" | jq -r '.k3s_master_public_ip.value')
+            
+            if [ -n "$MASTER_IP" ]; then
+              echo "K3S_MASTER_IP=$MASTER_IP" >> $GITHUB_OUTPUT
+              echo "Successfully set K3S_MASTER_IP to $MASTER_IP"
+            else
+              echo "Error: k3s_master_public_ip output exists but has no value"
+              exit 1
+            fi
+          else
+            echo "Error: k3s_master_public_ip output does not exist in Terraform state"
+            echo "Available outputs:"
+            echo "$OUTPUTS" | jq -r 'keys'
+            exit 1
+          fi
           
       - name: Update Kubernetes manifests
         run: |
@@ -132,4 +154,4 @@ jobs:
           kubectl apply -f k8s/ingress.yaml
           
           # Wait for the deployment to be ready
-          kubectl rollout status deployment/truvoice -n truvoice-dev --timeout=300s 
+          kubectl rollout status deployment/truvoice -n truvoice-dev --timeout=300s
