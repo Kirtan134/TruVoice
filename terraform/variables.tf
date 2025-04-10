@@ -13,7 +13,7 @@ variable "environment" {
 variable "ubuntu_ami" {
   description = "Ubuntu 22.04 LTS AMI ID"
   type        = string
-  default     = "ami-0261755bbcb8c4a84" # Ubuntu 22.04 LTS in us-east-1, update for other regions
+  default     = "ami-0e35ddab05955cf57" 
 }
 
 variable "master_instance_type" {
