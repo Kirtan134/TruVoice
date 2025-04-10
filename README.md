@@ -1,62 +1,89 @@
-# TruVoice - Voice Authentication System
+# TruVoice
 
-A secure voice authentication system built with Next.js, featuring real-time voice recording, authentication, and user management.
+### The World of Anonymous Feedback
+
+TruVoice - Where your identity remains a secret. Now with the power of AI.
+
+## Table of Contents
+
+- [Introduction](#introduction)
+- [Features](#features)
+- [Tech Stack](#tech-stack)
+- [Installation](#installation)
+- [Usage](#usage)
+- [Deployment](#deployment)
+- [Monitoring](#monitoring)
+- [Contributing](#contributing)
+- [License](#license)
+
+## Introduction
+
+TruVoice is an innovative platform designed to allow users to give and receive anonymous feedback. With the integration of AI, users can generate thoughtful and constructive feedback easily. Whether authenticated or not, users can provide feedback securely and anonymously.
 
 ## Features
 
-- **Voice Authentication**: Secure voice-based user authentication
-- **Real-time Recording**: Browser-based voice recording with visual feedback
-- **User Management**: Secure user registration and profile management
-- **Modern UI**: Clean, responsive interface built with Tailwind CSS
-- **Monitoring**: Prometheus and Grafana integration for metrics and monitoring
+- **Anonymous Feedback:** Receive feedback from others while keeping your identity secret.
+- **Email Authentication:** Authenticate via email using OTP for secure feedback receipt.
+- **AI-Generated Feedback:** Use Gemini AI to generate feedback messages.
+- **Cross-Platform:** Fully responsive design for both desktop and mobile devices.
+- **Monitoring:** Comprehensive monitoring with Prometheus and Grafana.
 
 ## Tech Stack
 
-- **Frontend**: Next.js, React, Tailwind CSS
-- **Backend**: Next.js API Routes
-- **Authentication**: Voice-based authentication
-- **Database**: MongoDB (via MongoDB Atlas)
-- **Deployment**: Docker, Kubernetes
-- **CI/CD**: GitHub Actions
-- **Infrastructure**: AWS (EC2, ECR)
-- **Infrastructure as Code**: Terraform
-- **Monitoring**: Prometheus, Grafana
+TruVoice is built using the following technologies:
 
-## Prerequisites
+- **Frontend:** Next.js, ShadCN
+- **Backend:** Next.js API routes
+- **Database:** MongoDB
+- **Authentication:** Next-Auth, Auth.js, JWT tokens
+- **Validation:** Zod
+- **Email Services:** Nodemailer, Gmail API
+- **AI Integration:** Gemini AI
+- **Deployment:** Docker, Kubernetes (K3s)
+- **CI/CD:** GitHub Actions
+- **Infrastructure:** AWS (EC2, ECR)
+- **Infrastructure as Code:** Terraform
+- **Monitoring:** Prometheus, Grafana
 
-- Node.js 18.x or higher
-- Docker
-- kubectl
-- AWS CLI
-- Terraform
+## Installation
 
-## Getting Started
+To get a local copy up and running, follow these simple steps:
 
-### Local Development
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/yourusername/truvoice.git
-   cd truvoice
+1. Clone the repo
+   ```sh
+   git clone https://github.com/Kirtan134/TruVoice.git
    ```
-
-2. Install dependencies:
-   ```bash
+2. Install NPM packages
+   ```sh
    npm install
    ```
+3. Set up environment variables
+   - Create a `.env` file in the root directory
+   - Add your MONGODB_URI, NEXTAUTH_SECRET, GEMINI_API_KEY, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, REFRESH_TOKEN and other necessary credentials
 
-3. Create a `.env.local` file with the following variables:
-   ```
-   MONGODB_URI=your_mongodb_uri
-   JWT_SECRET=your_jwt_secret
-   ```
-
-4. Run the development server:
-   ```bash
+4. Run the development server
+   ```sh
    npm run dev
    ```
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+## Usage
+
+1. **Authentication:**
+   - Sign up with your email.
+   - Verify your email using the OTP sent to your inbox.
+
+2. **Giving Feedback:**
+   - Choose to authenticate or give feedback anonymously.
+   - Use Gemini AI to generate feedback messages if needed.
+   - Submit your feedback.
+
+3. **Receiving Feedback:**
+   - Receive feedback anonymously.
+   - Manage your feedback through the user dashboard.
+
+## Deployment
+
+TruVoice can be deployed using Docker or Kubernetes. Below are instructions for both methods.
 
 ### Docker Deployment
 
@@ -72,6 +99,45 @@ A secure voice authentication system built with Next.js, featuring real-time voi
 
 ### Kubernetes Deployment
 
+The application is deployed on a lightweight Kubernetes cluster (K3s) running on AWS EC2 t2.micro instances. The infrastructure is managed using Terraform, and the CI/CD pipeline is implemented using GitHub Actions.
+
+#### Prerequisites
+
+- AWS Account with appropriate permissions
+- Terraform installed locally (for manual deployment)
+- GitHub account with repository access
+- SSH key pair for EC2 instance access
+- kubectl configured to access your Kubernetes cluster
+
+#### Manual Deployment with Terraform
+
+1. Initialize Terraform:
+   ```bash
+   cd terraform
+   terraform init
+   ```
+
+2. Create a terraform.tfvars file with your configuration:
+   ```hcl
+   aws_region = "ap-south-1"
+   environment = "dev"
+   public_key_path = "~/.ssh/id_rsa.pub"
+   private_key_path = "~/.ssh/id_rsa"
+   ```
+
+3. Apply the Terraform configuration:
+   ```bash
+   terraform plan -out=tfplan
+   terraform apply tfplan
+   ```
+
+4. Get the kubeconfig:
+   ```bash
+   terraform output kubectl_config_command
+   ```
+
+#### Deploying the Application
+
 1. Apply the Kubernetes manifests:
    ```bash
    kubectl apply -f k8s/
@@ -82,9 +148,20 @@ A secure voice authentication system built with Next.js, featuring real-time voi
    kubectl port-forward svc/truvoice-service 3000:3000
    ```
 
-## Monitoring Setup
+#### Automated Deployment with GitHub Actions
 
-The application includes Prometheus and Grafana for monitoring:
+1. Fork the repository to your GitHub account.
+
+2. Set up the following GitHub Secrets:
+   - `AWS_ACCESS_KEY_ID`: Your AWS access key
+   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
+   - `AWS_REGION`: The AWS region to deploy to (e.g., ap-south-1)
+
+3. Push changes to the main branch to trigger the CI/CD pipeline.
+
+## Monitoring
+
+TruVoice includes comprehensive monitoring with Prometheus and Grafana.
 
 ### Prometheus
 
@@ -103,7 +180,7 @@ Access Grafana at: `http://<your-server-ip>:30300`
 
 Default credentials:
 - Username: `admin`
-- Password: `admin`
+- Password: `admin123` (change this in production!)
 
 ### Metrics Endpoint
 
@@ -113,117 +190,6 @@ The application exposes metrics at `/api/metrics` for Prometheus to scrape. Thes
 - HTTP request count
 - Voice recording duration
 - Authentication attempts
-
-## Infrastructure Setup
-
-### AWS Setup
-
-1. Configure AWS credentials:
-   ```bash
-   aws configure
-   ```
-
-2. Apply Terraform configuration:
-   ```bash
-   cd terraform
-   terraform init
-   terraform plan
-   terraform apply
-   ```
-
-### CI/CD Pipeline
-
-The project includes a GitHub Actions workflow for CI/CD:
-
-1. Builds and tests the application
-2. Builds a Docker image
-3. Pushes the image to Amazon ECR
-4. Deploys to Kubernetes
-
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## Acknowledgments
-
-- Next.js team for the amazing framework
-- Tailwind CSS for the utility-first CSS framework
-- Prometheus and Grafana for the monitoring tools
-
-## Architecture
-
-The application is deployed on a lightweight Kubernetes cluster (K3s) running on AWS EC2 t2.micro instances. The infrastructure is managed using Terraform, and the CI/CD pipeline is implemented using GitHub Actions.
-
-### Components
-
-- **K3s Cluster**: A lightweight Kubernetes distribution running on EC2 t2.micro instances
-- **Prometheus & Grafana**: For monitoring and observability
-- **ECR Repository**: For storing Docker images
-- **GitHub Actions**: For CI/CD pipeline
-
-## Prerequisites
-
-- AWS Account with appropriate permissions
-- Terraform installed locally (for manual deployment)
-- GitHub account with repository access
-- SSH key pair for EC2 instance access
-
-## Setup Instructions
-
-### 1. Manual Deployment with Terraform
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/your-username/truvoice.git
-   cd truvoice
-   ```
-
-2. Initialize Terraform:
-   ```bash
-   cd terraform
-   terraform init
-   ```
-
-3. Create a terraform.tfvars file with your configuration:
-   ```hcl
-   aws_region = "ap-south-1"
-   environment = "dev"
-   public_key_path = "~/.ssh/id_rsa.pub"
-   private_key_path = "~/.ssh/id_rsa"
-   ```
-
-4. Apply the Terraform configuration:
-   ```bash
-   terraform plan -out=tfplan
-   terraform apply tfplan
-   ```
-
-5. Get the kubeconfig:
-   ```bash
-   terraform output kubectl_config_command
-   ```
-
-### 2. Automated Deployment with GitHub Actions
-
-1. Fork the repository to your GitHub account.
-
-2. Set up the following GitHub Secrets:
-   - `AWS_ACCESS_KEY_ID`: Your AWS access key
-   - `AWS_SECRET_ACCESS_KEY`: Your AWS secret key
-   - `AWS_REGION`: The AWS region to deploy to (e.g., ap-south-1)
-
-3. Push changes to the main branch to trigger the CI/CD pipeline.
-
-## Monitoring
-
-The application is monitored using Prometheus and Grafana:
-
-- **Prometheus**: Available at `http://<master-ip>:9090`
-- **Grafana**: Available at `http://<master-ip>:3000`
-
-Default Grafana credentials:
-- Username: admin
-- Password: admin123 (change this in production!)
 
 ## Cost Optimization
 
@@ -248,12 +214,21 @@ This setup is optimized for cost by using t2.micro instances. However, these ins
    - Verify network connectivity between pods
    - Check Prometheus targets in the UI
 
+## Contributing
+
+Contributions are what make the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
 ## License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Distributed under the MIT License. See `LICENSE` for more information.
 
 ## Contributors
 
 - Kirtan Parikh (@Kirtan134)
----
 
