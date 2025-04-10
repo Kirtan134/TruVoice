@@ -39,6 +39,16 @@ ENV REDIRECT_URI=${REDIRECT_URI}
 ENV REFRESH_TOKEN=${REFRESH_TOKEN}
 ENV EMAIL=${EMAIL}
 
+# Debug: Print environment variables (without sensitive values)
+RUN echo "MONGODB_URI is set: ${MONGODB_URI:+yes}" && \
+    echo "NEXTAUTH_SECRET is set: ${NEXTAUTH_SECRET:+yes}" && \
+    echo "GEMINI_API_KEY is set: ${GEMINI_API_KEY:+yes}" && \
+    echo "CLIENT_ID is set: ${CLIENT_ID:+yes}" && \
+    echo "CLIENT_SECRET is set: ${CLIENT_SECRET:+yes}" && \
+    echo "REDIRECT_URI is set: ${REDIRECT_URI:+yes}" && \
+    echo "REFRESH_TOKEN is set: ${REFRESH_TOKEN:+yes}" && \
+    echo "EMAIL is set: ${EMAIL:+yes}"
+
 # Build the application
 RUN npm run build
 
@@ -68,11 +78,10 @@ ENV REFRESH_TOKEN=${REFRESH_TOKEN}
 ENV EMAIL=${EMAIL}
 
 # Create a non-root user to run the application
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-USER nextjs
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs
 
-# Copy the build output, node_modules, and public directory
+# Copy necessary files
 COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
@@ -80,5 +89,5 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 # Expose the port the app runs on
 EXPOSE 3000
 
-# Set the command to run when the container starts
+# Start the application
 CMD ["node", "server.js"] 
