@@ -24,12 +24,24 @@ spec:
             secretKeyRef:
               name: grafana-secrets
               key: admin-password
+        - name: GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH
+          value: /var/lib/grafana/dashboards/truvoice-dashboard.json
         volumeMounts:
         - name: grafana-storage
           mountPath: /var/lib/grafana
+        - name: grafana-dashboards
+          mountPath: /var/lib/grafana/dashboards
+        - name: grafana-datasources
+          mountPath: /etc/grafana/provisioning/datasources
       volumes:
       - name: grafana-storage
         emptyDir: {}
+      - name: grafana-dashboards
+        configMap:
+          name: truvoice-dashboard
+      - name: grafana-datasources
+        configMap:
+          name: grafana-datasource
 ---
 apiVersion: v1
 kind: Service
@@ -42,7 +54,8 @@ spec:
   ports:
   - port: 3000
     targetPort: 3000
-  type: ClusterIP
+    nodePort: 30300
+  type: NodePort
 ---
 apiVersion: v1
 kind: Secret

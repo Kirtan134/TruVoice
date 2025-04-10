@@ -25,4 +25,9 @@ data:
             action: replace
             regex: ([^:]+)(?::\d+)?;(\d+)
             replacement: $1:$2
-            target_label: __address__ 
+            target_label: __address__
+      
+      - job_name: 'truvoice-app'
+        static_configs:
+          - targets: ['truvoice-service.default.svc.cluster.local:3000']
+        metrics_path: '/api/metrics' 

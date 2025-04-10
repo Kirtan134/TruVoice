@@ -1,6 +1,154 @@
-# TruVoice Application
+# TruVoice - Voice Authentication System
 
-This repository contains the TruVoice application, which is deployed on AWS EC2 t2.micro instances using K3s, Terraform, and GitHub Actions.
+A secure voice authentication system built with Next.js, featuring real-time voice recording, authentication, and user management.
+
+## Features
+
+- **Voice Authentication**: Secure voice-based user authentication
+- **Real-time Recording**: Browser-based voice recording with visual feedback
+- **User Management**: Secure user registration and profile management
+- **Modern UI**: Clean, responsive interface built with Tailwind CSS
+- **Monitoring**: Prometheus and Grafana integration for metrics and monitoring
+
+## Tech Stack
+
+- **Frontend**: Next.js, React, Tailwind CSS
+- **Backend**: Next.js API Routes
+- **Authentication**: Voice-based authentication
+- **Database**: MongoDB (via MongoDB Atlas)
+- **Deployment**: Docker, Kubernetes
+- **CI/CD**: GitHub Actions
+- **Infrastructure**: AWS (EC2, ECR)
+- **Infrastructure as Code**: Terraform
+- **Monitoring**: Prometheus, Grafana
+
+## Prerequisites
+
+- Node.js 18.x or higher
+- Docker
+- kubectl
+- AWS CLI
+- Terraform
+
+## Getting Started
+
+### Local Development
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/yourusername/truvoice.git
+   cd truvoice
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Create a `.env.local` file with the following variables:
+   ```
+   MONGODB_URI=your_mongodb_uri
+   JWT_SECRET=your_jwt_secret
+   ```
+
+4. Run the development server:
+   ```bash
+   npm run dev
+   ```
+
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+### Docker Deployment
+
+1. Build the Docker image:
+   ```bash
+   docker build -t truvoice:latest .
+   ```
+
+2. Run the container:
+   ```bash
+   docker run -p 3000:3000 --env-file .env.local truvoice:latest
+   ```
+
+### Kubernetes Deployment
+
+1. Apply the Kubernetes manifests:
+   ```bash
+   kubectl apply -f k8s/
+   ```
+
+2. Access the application:
+   ```bash
+   kubectl port-forward svc/truvoice-service 3000:3000
+   ```
+
+## Monitoring Setup
+
+The application includes Prometheus and Grafana for monitoring:
+
+### Prometheus
+
+Prometheus is deployed in the `monitoring` namespace and configured to scrape metrics from:
+
+- Node Exporter (system metrics)
+- Application metrics endpoint (`/api/metrics`)
+
+Access Prometheus at: `http://<your-server-ip>:30090`
+
+### Grafana
+
+Grafana is deployed in the `monitoring` namespace and configured to use Prometheus as a data source.
+
+Access Grafana at: `http://<your-server-ip>:30300`
+
+Default credentials:
+- Username: `admin`
+- Password: `admin`
+
+### Metrics Endpoint
+
+The application exposes metrics at `/api/metrics` for Prometheus to scrape. These metrics include:
+
+- HTTP request duration
+- HTTP request count
+- Voice recording duration
+- Authentication attempts
+
+## Infrastructure Setup
+
+### AWS Setup
+
+1. Configure AWS credentials:
+   ```bash
+   aws configure
+   ```
+
+2. Apply Terraform configuration:
+   ```bash
+   cd terraform
+   terraform init
+   terraform plan
+   terraform apply
+   ```
+
+### CI/CD Pipeline
+
+The project includes a GitHub Actions workflow for CI/CD:
+
+1. Builds and tests the application
+2. Builds a Docker image
+3. Pushes the image to Amazon ECR
+4. Deploys to Kubernetes
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Acknowledgments
+
+- Next.js team for the amazing framework
+- Tailwind CSS for the utility-first CSS framework
+- Prometheus and Grafana for the monitoring tools
 
 ## Architecture
 

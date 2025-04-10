@@ -38,6 +38,7 @@
     "node-fetch": "^3.3.2",
     "nodemailer": "^6.9.14",
     "openai": "^4.24.1",
+    "prom-client": "^15.1.3",
     "react": "^18",
     "react-dom": "^18",
     "react-email": "1.10.0",

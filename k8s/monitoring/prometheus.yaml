@@ -42,4 +42,5 @@ spec:
   ports:
   - port: 9090
     targetPort: 9090
-  type: ClusterIP 
+    nodePort: 30090
+  type: NodePort 
