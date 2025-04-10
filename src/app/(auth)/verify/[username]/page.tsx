@@ -2,11 +2,11 @@
 
 import { Button } from '@/components/ui/button';
 import {
-    Form,
-    FormField,
-    FormItem,
-    FormLabel,
-    FormMessage,
+  Form,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/components/ui/use-toast';
@@ -18,20 +18,18 @@ import { useParams, useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
-type VerifyParams = {
-  username: string;
-};
-
 export default function VerifyAccount() {
   const router = useRouter();
-  const params = useParams() as VerifyParams;
+  const params = useParams();
   const { toast } = useToast();
   const form = useForm<z.infer<typeof verifySchema>>({
     resolver: zodResolver(verifySchema),
   });
 
   const onSubmit = async (data: z.infer<typeof verifySchema>) => {
-    if (!params?.username) {
+    const username = params?.username;
+    
+    if (!username || typeof username !== 'string') {
       toast({
         title: 'Error',
         description: 'Username is missing',
@@ -42,7 +40,7 @@ export default function VerifyAccount() {
 
     try {
       const response = await axios.post<ApiResponse>(`/api/verify-code`, {
-        username: params.username,
+        username,
         code: data.code,
       });
 
