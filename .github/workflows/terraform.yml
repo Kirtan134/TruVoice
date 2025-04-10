@@ -2,12 +2,12 @@ name: 'Terraform CI/CD'
 
 on:
   push:
-    branches: [ main ]
+    branches: [ deployment ]
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
   pull_request:
-    branches: [ main ]
+    branches: [ deployment ]
     paths:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
@@ -25,7 +25,7 @@ on:
 
 env:
   TF_LOG: INFO
-  AWS_REGION: 'us-east-1' # Change to your preferred region
+  AWS_REGION: 'ap-south-1' # Change to your preferred region
   TF_WORKING_DIR: './terraform'
 
 permissions:
