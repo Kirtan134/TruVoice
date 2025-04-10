@@ -2,7 +2,7 @@ name: 'Docker Build & Push'
 
 on:
   push:
-    branches: [ main ]
+    branches: [ deployment ]
     paths-ignore:
       - 'terraform/**'
       - '.github/workflows/terraform.yml'
