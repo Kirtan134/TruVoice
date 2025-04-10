@@ -53,15 +53,6 @@ jobs:
         
       - name: Build and push Docker image
         uses: docker/build-push-action@v4
-        env:
-          MONGODB_URI: ${{ secrets.MONGODB_URI }}
-          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
-          CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
-          REDIRECT_URI: ${{ secrets.REDIRECT_URI }}
-          REFRESH_TOKEN: ${{ secrets.REFRESH_TOKEN }}
-          EMAIL: ${{ secrets.EMAIL }}
         with:
           context: .
           push: true
