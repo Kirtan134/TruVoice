@@ -4,6 +4,11 @@
 
 TruVoice - Where your identity remains a secret. Now with the power of AI.
 
+### Deployment Video
+
+🎥 [Click here to watch the video](https://drive.google.com/file/d/14Rq4M2Jejxe0DEhsQElM9__MlUWLtlg_/view?usp=sharing)
+
+
 ## Table of Contents
 
 - [Introduction](#introduction)
