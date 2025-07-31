@@ -1,15 +1,6 @@
-import { cognitoClient, cognitoConfig, validateCognitoConfig, } from "@/lib/cognito";
+import { cognitoClient, cognitoConfig, validateCognitoConfig, calculateSecretHash } from "@/lib/cognito";
 import { ApiResponse } from "@/types/ApiResponse";
 import { AdminGetUserCommand, ResendConfirmationCodeCommand, SignUpCommand, UserStatusType, } from "@aws-sdk/client-cognito-identity-provider";
-import crypto from "crypto";
-
-// Helper function to calculate SECRET_HASH
-function calculateSecretHash(username: string): string {
-  return crypto
-    .createHmac("SHA256", cognitoConfig.clientSecret!)
-    .update(username + cognitoConfig.clientId)
-    .digest("base64");
-}
 
 export async function createCognitoUser(
   email: string,
@@ -115,22 +106,13 @@ export async function resendVerificationEmail(
       Username: username,
     });
 
-    try {
-      const userResponse = await cognitoClient.send(getUserCommand);
+    const userResponse = await cognitoClient.send(getUserCommand);
 
-      if (userResponse.UserStatus === UserStatusType.CONFIRMED) {
-        return {
-          success: false,
-          message: "User is already verified",
-        };
-      }
-    } catch (error: any) {
-      if (error.name === "UserNotFoundException") {
-        return {
-          success: false,
-          message: "User not found",
-        };
-      }
+    if (userResponse.UserStatus === UserStatusType.CONFIRMED) {
+      return {
+        success: false,
+        message: "User is already verified",
+      };
     }
 
     // Resend verification code
@@ -149,6 +131,14 @@ export async function resendVerificationEmail(
     };
   } catch (error: any) {
     console.error("Error resending verification email:", error);
+    
+    if (error.name === "UserNotFoundException") {
+      return {
+        success: false,
+        message: "User not found",
+      };
+    }
+
     return {
       success: false,
       message: `Failed to resend verification email: ${

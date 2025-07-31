@@ -1,4 +1,5 @@
 import { CognitoIdentityProviderClient } from "@aws-sdk/client-cognito-identity-provider";
+import crypto from "crypto";
 
 // AWS Cognito Configuration
 export const cognitoConfig = {
@@ -35,4 +36,12 @@ export function validateCognitoConfig() {
       `Missing required environment variables: ${missing.join(", ")}`
     );
   }
+}
+
+// Helper function to calculate SECRET_HASH
+export function calculateSecretHash(username: string): string {
+  return crypto
+    .createHmac("SHA256", cognitoConfig.clientSecret!)
+    .update(username + cognitoConfig.clientId)
+    .digest("base64");
 }

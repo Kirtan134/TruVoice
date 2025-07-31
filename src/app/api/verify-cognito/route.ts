@@ -2,19 +2,11 @@ import {
   cognitoClient,
   cognitoConfig,
   validateCognitoConfig,
+  calculateSecretHash,
 } from "@/lib/cognito";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
 import { ConfirmSignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
-import crypto from "crypto";
-
-// Helper function to calculate SECRET_HASH
-function calculateSecretHash(username: string): string {
-  return crypto
-    .createHmac("SHA256", cognitoConfig.clientSecret!)
-    .update(username + cognitoConfig.clientId)
-    .digest("base64");
-}
 
 export async function POST(request: Request) {
   try {
