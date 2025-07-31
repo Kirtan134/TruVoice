@@ -115,7 +115,7 @@ export default function SendMessage() {
 
     setIsGeneratingFeedback(true);
     try {
-      const response = await axios.post("/api/generate-feedback", {
+      const response = await axios.post("/api/refine-message", {
         message: currentMessage,
         action: "refine",
       });
