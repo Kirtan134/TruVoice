@@ -1,59 +1,48 @@
-import nodemailer from 'nodemailer';
-import { google } from 'googleapis';
+import { ApiResponse } from "@/types/ApiResponse";
+import { render } from "@react-email/render";
+import { Resend } from "resend";
 import VerificationEmail from "../../emails/VerificationEmail";
-import { render } from '@react-email/render';
-import { ApiResponse } from '@/types/ApiResponse';
 
-const { OAuth2 } = google.auth;
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-const CLIENT_ID = process.env.CLIENT_ID;
-const CLIENT_SECRET = process.env.CLIENT_SECRET;
-const REDIRECT_URI = process.env.REDIRECT_URI;
-const REFRESH_TOKEN = process.env.REFRESH_TOKEN;
-
-const oAuth2Client = new OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
-oAuth2Client.setCredentials({ refresh_token: REFRESH_TOKEN });
-
-export async function sendVerificationEmail(email: string, username: string, verifyCode: string): Promise<ApiResponse> {
+export async function sendVerificationEmail(
+  email: string,
+  username: string,
+  verifyCode: string
+): Promise<ApiResponse> {
   try {
     console.log("Sending verification email to", email);
 
-    const accessTokenResponse = await oAuth2Client.getAccessToken();
-    if (!accessTokenResponse.token) {
-      throw new Error("Failed to retrieve access token");
+    if (!process.env.RESEND_API_KEY) {
+      throw new Error("RESEND_API_KEY is not configured");
     }
-    const accessToken = accessTokenResponse.token;
-   const myEmail = process.env.EMAIL
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        type: 'OAuth2',
-        user: myEmail,
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        refreshToken: REFRESH_TOKEN,
-        accessToken: accessToken,
-      },
+
+    const emailResponse = await resend.emails.send({
+      from: "TruVoice <onboarding@resend.dev>",
+      to: email,
+      subject: "TruVoice - Verification Code",
+      html: render(VerificationEmail({ username, otp: verifyCode })),
     });
 
-    const mailOptions = {
-      from: `TruVoice <${myEmail}>`,
-      to: email,
-      subject: 'TruVoice - Verification Code',
-      html: render(VerificationEmail({ username, otp: verifyCode })),
-    };
+    if (emailResponse.error) {
+      throw new Error(`Resend error: ${emailResponse.error.message}`);
+    }
 
-    await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully via Resend:", emailResponse.data?.id);
 
     return {
       success: true,
-      message: "Verification email sent",
+      message: "Verification email sent successfully",
     };
   } catch (e) {
-    console.error("Error sending verification email", e);
+    console.error("Error sending verification email:", e);
+
+    const errorMessage =
+      e instanceof Error ? e.message : "Unknown error occurred";
+
     return {
       success: false,
-      message: "Error sending verification email",
+      message: `Email sending failed: ${errorMessage}`,
     };
   }
 }
