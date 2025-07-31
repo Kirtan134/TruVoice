@@ -100,6 +100,7 @@ export default function SendMessage() {
 
   const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
 
+  // Function to improve message with AI
   const refineMessage = async () => {
     const currentMessage = form.getValues("content");
 
@@ -117,17 +118,17 @@ export default function SendMessage() {
     try {
       const response = await axios.post("/api/refine-message", {
         message: currentMessage,
-        action: "refine",
       });
 
-      const refinedMessage = response.data.message;
-      form.setValue("content", refinedMessage);
-
-      toast({
-        title: "Message Refined",
-        description: "AI has improved your message!",
-        variant: "default",
-      });
+      if (response.data.success) {
+        form.setValue("content", response.data.message);
+        toast({
+          title: "Message Refined",
+          description: "AI has improved your message!",
+        });
+      } else {
+        throw new Error(response.data.error);
+      }
     } catch (error) {
       console.error("Error refining message:", error);
       toast({

@@ -1,4 +1,4 @@
-import { sendVerificationEmail } from "@/helpers/sendVerificationEmail";
+import { createCognitoUser } from "@/helpers/sendVerificationEmail";
 import dbConnect from "@/lib/dbConnect";
 import UserModel from "@/model/User";
 import bcrypt from "bcryptjs";
@@ -9,6 +9,7 @@ export async function POST(request: Request) {
   try {
     const { username, email, password } = await request.json();
 
+    // Check if username is already taken by a verified user in our database
     const existingVerifiedUserByUsername = await UserModel.findOne({
       username,
       isVerified: true,
@@ -24,39 +25,58 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if email already exists and is verified in our database
     const existingUserByEmail = await UserModel.findOne({ email });
-    let verifyCode = Math.floor(100000 + Math.random() * 900000).toString();
+    if (existingUserByEmail && existingUserByEmail.isVerified) {
+      return Response.json(
+        {
+          success: false,
+          message: "User already exists with this email",
+        },
+        { status: 400 }
+      );
+    }
 
-    if (existingUserByEmail) {
-      if (existingUserByEmail.isVerified) {
-        return Response.json(
-          {
-            success: false,
-            message: "User already exists with this email",
-          },
-          { status: 400 }
-        );
-      } else {
-        const hashedPassword = await bcrypt.hash(password, 10);
-        existingUserByEmail.password = hashedPassword;
-        existingUserByEmail.verifyCode = verifyCode;
-        existingUserByEmail.verifyCodeExpiry = new Date(
-          Date.now() + 24 * 60 * 60 * 1000
-        ); // 24 hours
-        await existingUserByEmail.save();
-      }
-    } else {
+    // Check if username exists but is unverified (edge case handling)
+    const existingUnverifiedUserByUsername = await UserModel.findOne({
+      username,
+      isVerified: false,
+    });
+
+    // Create user in Cognito first
+    const cognitoResponse = await createCognitoUser(email, username, password);
+
+    if (!cognitoResponse.success) {
+      return Response.json(
+        {
+          success: false,
+          message: cognitoResponse.message,
+        },
+        { status: 400 }
+      );
+    }
+
+    // If Cognito user creation successful, create/update user in our database
+    if (existingUserByEmail || existingUnverifiedUserByUsername) {
+      // Update existing unverified user (by email or username)
+      const userToUpdate =
+        existingUserByEmail || existingUnverifiedUserByUsername;
       const hashedPassword = await bcrypt.hash(password, 10);
-      const expiryDate = new Date();
-      expiryDate.setHours(expiryDate.getHours() + 24); // 24 hours instead of 1
+
+      userToUpdate!.password = hashedPassword;
+      userToUpdate!.username = username;
+      userToUpdate!.email = email;
+      userToUpdate!.isVerified = false; // Will be verified through Cognito
+      await userToUpdate!.save();
+    } else {
+      // Create new user in our database
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const newUser = new UserModel({
         username,
         email,
         password: hashedPassword,
-        verifyCode,
-        verifyCodeExpiry: expiryDate,
-        isVerified: false,
+        isVerified: false, // Will be verified through Cognito
         isAcceptingMessages: true,
         messages: [],
       });
@@ -64,27 +84,10 @@ export async function POST(request: Request) {
       await newUser.save();
     }
 
-    // Send verification email using Resend
-    const emailResponse = await sendVerificationEmail(
-      email,
-      username,
-      verifyCode
-    );
-
-    if (!emailResponse.success) {
-      return Response.json(
-        {
-          success: false,
-          message: emailResponse.message,
-        },
-        { status: 500 }
-      );
-    }
-
     return Response.json(
       {
         success: true,
-        message: "User registered successfully. Please verify your account.",
+        message: cognitoResponse.message,
       },
       { status: 201 }
     );

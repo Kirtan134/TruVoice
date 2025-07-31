@@ -1,98 +1,64 @@
-'use client';
+"use client";
 
-import { ApiResponse } from '@/types/ApiResponse';
-import { zodResolver } from '@hookform/resolvers/zod';
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { useDebounce } from 'usehooks-ts';
-import * as z from 'zod';
+import { zodResolver } from "@hookform/resolvers/zod";
+import axios, { AxiosError } from "axios";
+import { Loader2 } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
-import { Button } from '@/components/ui/button';
-import {
-  Form,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { useToast } from '@/components/ui/use-toast';
-import axios, { AxiosError } from 'axios';
-import { Loader2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { signUpSchema } from '@/schemas/signUpSchema';
+import { Button } from "@/components/ui/button";
+import { Form, FormField, FormItem, FormLabel, FormMessage, } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useToast } from "@/components/ui/use-toast";
+import { signUpSchema } from "@/schemas/signUpSchema";
+import { ApiResponse } from "@/types/ApiResponse";
 
 export default function SignUpForm() {
-  const [username, setUsername] = useState('');
-  const [usernameMessage, setUsernameMessage] = useState('');
-  const [isCheckingUsername, setIsCheckingUsername] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const debouncedUsername = useDebounce(username, 300);
-
   const router = useRouter();
   const { toast } = useToast();
 
+  // Form setup with validation
   const form = useForm<z.infer<typeof signUpSchema>>({
     resolver: zodResolver(signUpSchema),
     defaultValues: {
-      username: '',
-      email: '',
-      password: '',
+      username: "",
+      email: "",
+      password: "",
     },
   });
 
-  useEffect(() => {
-    const checkUsernameUnique = async () => {
-      if (debouncedUsername) {
-        setIsCheckingUsername(true);
-        setUsernameMessage(''); // Reset message
-        try {
-          const response = await axios.get<ApiResponse>(
-            `/api/check-username-unique?username=${debouncedUsername}`
-          );
-          setUsernameMessage(response.data.message);
-        } catch (error) {
-          const axiosError = error as AxiosError<ApiResponse>;
-          setUsernameMessage(
-            axiosError.response?.data.message ?? 'Error checking username'
-          );
-        } finally {
-          setIsCheckingUsername(false);
-        }
-      }
-    };
-    checkUsernameUnique();
-  }, [debouncedUsername]);
-
+  // Handle form submission
   const onSubmit = async (data: z.infer<typeof signUpSchema>) => {
     setIsSubmitting(true);
+
     try {
-      const response = await axios.post<ApiResponse>('/api/sign-up', data);
+      const response = await axios.post<ApiResponse>("/api/sign-up", data);
 
       toast({
-        title: 'Success',
+        title: "Success",
         description: response.data.message,
       });
 
-      router.replace(`/verify/${username}`);
-
-      setIsSubmitting(false);
+      // Redirect to verification page
+      router.replace(`/verify/${data.username}`);
     } catch (error) {
-      console.error('Error during sign-up:', error);
+      console.error("Error during sign-up:", error);
 
       const axiosError = error as AxiosError<ApiResponse>;
-
-      // Default error message
-      let errorMessage = axiosError.response?.data.message;
-      ('There was a problem with your sign-up. Please try again.');
+      const errorMessage =
+        axiosError.response?.data.message ||
+        "There was a problem with your sign-up. Please try again.";
 
       toast({
-        title: 'Sign Up Failed',
+        title: "Sign Up Failed",
         description: errorMessage,
-        variant: 'destructive',
+        variant: "destructive",
       });
-
+    } finally {
       setIsSubmitting(false);
     }
   };
@@ -114,25 +80,7 @@ export default function SignUpForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Username</FormLabel>
-                  <Input
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      setUsername(e.target.value);
-                    }}
-                  />
-                  {isCheckingUsername && <Loader2 className="animate-spin" />}
-                  {!isCheckingUsername && usernameMessage && (
-                    <p
-                      className={`text-sm ${
-                        usernameMessage === 'Username is unique'
-                          ? 'text-green-500'
-                          : 'text-red-500'
-                      }`}
-                    >
-                      {usernameMessage}
-                    </p>
-                  )}
+                  <Input {...field} />
                   <FormMessage />
                 </FormItem>
               )}
@@ -143,8 +91,10 @@ export default function SignUpForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Email</FormLabel>
-                  <Input {...field} name="email" />
-                  <p className='text-black text-sm'>A verification code will be send to your email</p>
+                  <Input {...field} type="email" />
+                  <p className="text-black text-sm">
+                    A verification code will be sent to your email
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
@@ -156,33 +106,40 @@ export default function SignUpForm() {
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Password</FormLabel>
-                  <Input type="password" {...field} name="password" />
-                  <p className='text-sm'> Your password should be atleast 6 characters long</p>
-                  <p className='text-sm'>Password will be secured in encrypted form.</p>
+                  <Input type="password" {...field} />
+                  <p className="text-sm">
+                    Your password should be at least 6 characters long
+                  </p>
                   <FormMessage />
                 </FormItem>
               )}
             />
+
             {isSubmitting && (
-              <>
-                    <p className='text-sm'> It may take some time for verification code to be sent.</p> 
-                    </>
-                  )}
-            <Button type="submit" className='w-full bg-black' disabled={isSubmitting}>
+              <p className="text-sm text-gray-600">
+                It may take some time for the verification code to be sent.
+              </p>
+            )}
+
+            <Button
+              type="submit"
+              className="w-full bg-black"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Please wait
                 </>
               ) : (
-                'Sign Up'
+                "Sign Up"
               )}
             </Button>
           </form>
         </Form>
         <div className="text-center mt-4">
           <p>
-            Already a member?{' '}
+            Already a member?{" "}
             <Link href="/sign-in" className="text-blue-600 hover:text-blue-800">
               Sign in
             </Link>
@@ -192,4 +149,3 @@ export default function SignUpForm() {
     </div>
   );
 }
-
