@@ -37,7 +37,7 @@ export async function sendVerificationEmail(email: string, username: string, ver
     });
 
     const mailOptions = {
-      from: 'TruVoice <myEmail>',
+      from: `TruVoice <${myEmail}>`,
       to: email,
       subject: 'TruVoice - Verification Code',
       html: render(VerificationEmail({ username, otp: verifyCode })),
