@@ -8,7 +8,6 @@ git checkout deployment
 
 👉 [Go to the deployment branch](https://github.com/Kirtan134/TruVoice/tree/deployment)
 
-
 # TruVoice
 
 ### The World of Anonymous Feedback
@@ -33,7 +32,8 @@ TruVoice is an innovative platform designed to allow users to give and receive a
 
 - **Anonymous Feedback:** Receive feedback from others while keeping your identity secret.
 - **Email Authentication:** Authenticate via email using OTP for secure feedback receipt.
-- **AI-Generated Feedback:** Use Gemini AI to generate feedback messages.
+- **AI-Generated Feedback:** Use Gemini 2.5 Flash AI to generate thoughtful feedback messages and personalized suggestions.
+- **Smart Question Generation:** AI-powered question suggestions for better engagement.
 - **Cross-Platform:** Fully responsive design for both desktop and mobile devices.
 
 ## Tech Stack
@@ -46,7 +46,7 @@ TruVoice is built using the following technologies:
 - **Authentication:** Next-Auth, Auth.js, JWT tokens
 - **Validation:** Zod
 - **Email Services:** Nodemailer, Gmail API
-- **AI Integration:** Gemini AI
+- **AI Integration:** Gemini 2.5 Flash for intelligent content generation
 
 ## Installation
 
@@ -61,8 +61,9 @@ To get a local copy up and running, follow these simple steps:
    npm install
    ```
 3. Set up environment variables
+
    - Create a `.env` file in the root directory
-   - Add your MONGODB_URI, NEXTAUTH_SECRET, GEMINI_API_KEY, CLIENT_ID,  CLIENT_SECRET, REDIRECT_URI, REFRESH_TOKEN and other necessary credentials
+   - Add your MONGODB_URI, NEXTAUTH_SECRET, GEMINI_API_KEY, CLIENT_ID, CLIENT_SECRET, REDIRECT_URI, REFRESH_TOKEN and other necessary credentials
 
 4. Run the development server
    ```sh
@@ -72,10 +73,12 @@ To get a local copy up and running, follow these simple steps:
 ## Usage
 
 1. **Authentication:**
+
    - Sign up with your email.
    - Verify your email using the OTP sent to your inbox.
 
 2. **Giving Feedback:**
+
    - Choose to authenticate or give feedback anonymously.
    - Use Gemini AI to generate feedback messages if needed.
    - Submit your feedback.
@@ -99,4 +102,3 @@ Contributions are what make the open-source community such an amazing place to l
 Distributed under the MIT License. See `LICENSE` for more information.
 
 ---
-

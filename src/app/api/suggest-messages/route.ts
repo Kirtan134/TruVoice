@@ -1,28 +1,66 @@
-import { NextResponse } from 'next/server';
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { GoogleGenAI } from "@google/genai";
+import { NextResponse } from "next/server";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash"});
-export const runtime = 'edge';
+export const runtime = "edge";
 
 export async function POST(req: Request) {
   try {
-    const prompt =
-      "Create a list of three open-ended and engaging questions formatted as a single string. Each question should be separated by '||'. These questions are for an anonymous social messaging platform, like Qooh.me, and should be suitable for a diverse audience. Avoid personal or sensitive topics, focusing instead on universal themes that encourage friendly interaction. For example, your output should be structured like this: 'What’s a hobby you’ve recently started?||If you could have dinner with any historical figure, who would it be?||What’s a simple thing that makes you happy?'. Ensure the questions are intriguing, foster curiosity, and contribute to a positive and welcoming conversational environment.";
-       const result = await model.generateContent(prompt);
-       const response = await result.response;
-       const text = response.text();
-       return new NextResponse(text);
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    });
 
+    const prompt = `Generate exactly 3 engaging, thoughtful questions for an anonymous messaging platform.
+
+Requirements:
+- Questions should be open-ended and spark meaningful conversations
+- Suitable for all ages and backgrounds
+- Avoid personal, sensitive, or controversial topics
+- Focus on positive, creative, and fun themes
+- Format: separate each question with '||' (no spaces around separator)
+
+Examples of good questions:
+- What's a skill you'd love to learn and why?
+- If you could visit any place in the world, where would it be?
+- What's something that always makes you smile?
+
+Generate 3 new unique questions now:`;
+
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: prompt,
+    });
+
+    // Check if response is valid
+    if (!response || !response.text) {
+      throw new Error("No response generated from AI model");
+    }
+
+    const text = response.text.trim();
+
+    // Validate that we got questions in the right format
+    const questions = text.split("||");
+    if (questions.length < 2) {
+      // Fallback to default questions if AI response is malformed
+      const fallbackQuestions = [
+        "What's a book or movie that changed your perspective?",
+        "If you could have any superpower for a day, what would it be?",
+        "What's the best advice you've ever received?",
+      ].join("||");
+
+      return new NextResponse(fallbackQuestions);
+    }
+
+    return new NextResponse(text);
   } catch (error) {
-    console.error('An unexpected error occurred:', error);
-    return new NextResponse(
-      JSON.stringify({
-        error: 'An unexpected error occurred',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
-      { status: 500 }
-    );
+    console.error("Error generating suggested messages:", error);
+
+    // Provide fallback questions if AI fails
+    const fallbackQuestions = [
+      "What's something you're passionate about?",
+      "If you could time travel, which era would you visit?",
+      "What's a random act of kindness you've witnessed?",
+    ].join("||");
+
+    return new NextResponse(fallbackQuestions);
   }
 }
